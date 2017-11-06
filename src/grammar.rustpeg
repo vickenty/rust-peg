@@ -40,8 +40,8 @@ item -> Item
     = "#![" _ "arguments" _ "(" _ args:COMMASEP<grammar_argument> _ ")" _ "]"
     { Item::GrammarArgs(args) }
 
-    grammar_argument -> (String, String)
-      = i:identifier _ ":" _ t:type_string { (i, t) }
+    grammar_argument -> (bool, String, String)
+      = m:KEYWORD<"mut">? _ i:identifier _ ":" _ t:type_string { (m.is_some(), i, t) }
 
 
 type_string -> String = tp:$rust_type _ { tp.to_owned() }

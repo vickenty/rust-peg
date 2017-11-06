@@ -15,7 +15,7 @@ pub(crate) struct Grammar {
 	pub imports: Vec<String>,
 	pub rules: Vec<Rule>,
 	pub templates: HashMap<String, Template>,
-	pub args: Vec<(String, String)>,
+	pub args: Vec<(bool, String, String)>,
 }
 
 impl Grammar {
@@ -71,16 +71,17 @@ impl Grammar {
 	}
 
 	fn extra_args_def(&self) -> Tokens {
-		let args: Vec<Tokens> = self.args.iter().map(|&(ref name, ref tp)| {
+		let args: Vec<Tokens> = self.args.iter().map(|&(is_mut, ref name, ref tp)| {
+            let mut_ = if is_mut { Some(raw("mut")) } else { None };
 			let name = raw(name);
 			let tp = raw(tp);
-			quote!(, #name: #tp)
+			quote!(, #mut_ #name: #tp)
 		}).collect();
 		quote!(#(#args)*)
 	}
 
 	fn extra_args_call(&self) -> Tokens {
-		let args: Vec<Tokens> = self.args.iter().map(|&(ref name, _)| {
+		let args: Vec<Tokens> = self.args.iter().map(|&(_, ref name, _)| {
 			let name = raw(name);
 			quote!(, #name)
 		}).collect();
@@ -92,7 +93,7 @@ pub enum Item {
 	Use(String),
 	Rule(Rule),
 	Template(Template),
-	GrammarArgs(Vec<(String, String)>)
+	GrammarArgs(Vec<(bool, String, String)>)
 }
 
 pub struct Rule {
@@ -807,7 +808,7 @@ fn compile_expr(compiler: &mut PegCompiler, cx: Context, e: &Spanned<Expr>) -> T
 				match exprs.first() {
 					Some(ref first) => {
 						if let Some(name) = first.name.as_ref() {
-							if cx.grammar.args.iter().any(|x| x.0 == name.node) {
+							if cx.grammar.args.iter().any(|x| x.1 == name.node) {
 								compiler.span_error(
 									format!("Capture variable `{}` shadows grammar argument", name.node),
 									name.span,
